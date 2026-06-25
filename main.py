@@ -1,24 +1,18 @@
-from data_structure.linked_list import LinkedList
+from data_structure.linked_list import DoublyLinkedList
 from data_structure.hash_map import HashMap
 
 def main():
     print("-----linkedlist-----")
-    data = 123
-    new_linked_list = LinkedList(data)
+    new_linked_list = DoublyLinkedList()
     new_data = 213123
     new_linked_list.insert_back(new_data)
     
     new_data_front= 11111
     new_linked_list.insert_front(new_data_front)
-    # new_linked_list.remove_back()
-    # new_linked_list.remove_front()
-    new_linked_list.get_nodes()
-    result = new_linked_list.get_node(3)
-
-    print(f"result : {result}")
-
-    size = new_linked_list.get_size()
-    print(f"size: {size}")
+    
+    for data in new_linked_list:
+        print(data)
+        
 
 
 

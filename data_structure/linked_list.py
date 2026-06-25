@@ -1,116 +1,119 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterator, Callable
 
-class Node:
-    prev: 'Node | None' = None
-    next: 'Node | None' = None
-    data: Any = None
 
+class ListNode:
     def __init__(self, data: Any):
-        self.data = data
+        self.prev: "ListNode | None" = None
+        self.next: "ListNode | None" = None
+        self.data: Any = data
 
 
+class DoublyLinkedList:
+    def __init__(self):
+        self.head: ListNode | None = None
+        self.tail: ListNode | None = None
+        self._size = 0
 
-class LinkedList:
-    head: Node | None
-    tail: Node | None
+    def insert_front(self, data: Any) -> ListNode:
+        new_node = ListNode(data)
 
-    def __init__(self, data: Any = None):
-        if data is not None:
-            new_node = Node(data)
+        if self.head is None:
             self.head = new_node
             self.tail = new_node
         else:
-            self.head = None
-            self.tail = None
-    
-    def insert_back(self, data:Any):
-        new_node = Node(data)
+            new_node.next = self.head
+            self.head.prev = new_node
+            self.head = new_node
 
-        if self.head is None:
+        self._size += 1
+        return new_node
+
+    def insert_back(self, data: Any) -> ListNode:
+        new_node = ListNode(data)
+
+        if self.tail is None:
             self.head = new_node
             self.tail = new_node
-            return
-
-        self.tail.next = new_node
-        new_node.prev = self.tail
-        self.tail = new_node
-            
-    def insert_front(self, data:Any):
-        new_node = Node(data)
-
-        if self.head is None:
-            self.head = new_node
+        else:
+            new_node.prev = self.tail
+            self.tail.next = new_node
             self.tail = new_node
-            return
 
-        
-        new_node.next = self.head
-        self.head.prev = new_node
-        self.head = new_node
+        self._size += 1
+        return new_node
 
-    def remove_back(self):
+    def remove_front(self) -> Any:
         if self.head is None:
+            return None
+
+        return self.remove_node(self.head)
+
+    def remove_back(self) -> Any:
+        if self.tail is None:
+            return None
+
+        return self.remove_node(self.tail)
+
+    def remove_node(self, node: ListNode) -> Any:
+        if node.prev is not None:
+            node.prev.next = node.next
+        else:
+            self.head = node.next
+
+        if node.next is not None:
+            node.next.prev = node.prev
+        else:
+            self.tail = node.prev
+
+        removed_data = node.data
+
+        node.prev = None
+        node.next = None
+
+        self._size -= 1
+        return removed_data
+
+    def move_to_front(self, node: ListNode) -> None:
+        if node is self.head:
             return
-        
 
-        if self.head == self.tail:
-            self.head = None
-            self.tail = None
-            return
+        if node.prev is not None:
+            node.prev.next = node.next
 
-        self.tail = self.tail.prev
-        self.tail.next = None
+        if node.next is not None:
+            node.next.prev = node.prev
+        else:
+            self.tail = node.prev
 
-    def remove_front(self):
-        if self.head is None:
-            return
-        
-        if self.head == self.tail:
-            self.head = None
-            self.tail = None
-            return
+        node.prev = None
+        node.next = self.head
 
+        if self.head is not None:
+            self.head.prev = node
 
-        self.head = self.head.next
-        self.head.prev = None
-        
+        self.head = node
 
-    def get_nodes(self):
-        if(self.head == None):
-            return
+        if self.tail is None:
+            self.tail = node
+
+    def find_node(self, predicate: Callable[[Any], bool]) -> ListNode | None:
         current = self.head
-        while(current):
-            print(current.data)
-            current = current.next
-        
 
-    def get_node(self, index) -> Any:
-        if(self.head == None):
-            return
-        
-        if self.get_size() <= index:
-            return
-         
+        while current is not None:
+            if predicate(current.data):
+                return current
+
+            current = current.next
+
+        return None
+
+    def size(self) -> int:
+        return self._size
+
+    def __iter__(self) -> Iterator[Any]:
         current = self.head
-        for i in range(index):
+
+        while current is not None:
+            yield current.data
             current = current.next
-
-        return current.data
-    
-    def get_size(self):
-        if(self.head == None):
-            return
-        
-        index = 0
-        current = self.head
-        while(current):
-            index += 1
-            print(current.data)
-            current = current.next
-         
-        return index
-
-
-
-
