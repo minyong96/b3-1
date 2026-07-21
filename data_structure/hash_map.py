@@ -32,11 +32,11 @@ class HashMap:
         hash_value = 0
 
         for char in key_str:
-            hash_value = (hash_value << 5) - hash_value + ord(char) # 해시 충돌을 최소화하고 비트를 골고루 분산
-
-            hash_value &= 0xFFFFFFFF # 오버플로우 막기
+            hash_value = (hash_value << 5) - hash_value + ord(char) # 해시 충돌을 최소화하고 비트를 골고루 분산 # 비트연산으로 32비트 이동 후 빼기 연산을 통해 해시값을 계산 
 
         return hash_value ^ (hash_value >> 16) # xor
+
+        # 앞선 연산으로 인해 해시 값이 매우 커졌을 때, 정수형의 앞부분(상위 비트)에만 정보가 쏠려있고 뒷부분(하위 비트)은 덜 섞여 있을 수 있습니다. 만약 나중에 버킷 크기로 나머지 연산(% bucket_size)을 하게 되면 상위 비트의 정보가 버려지게 됩니다.       
     
     
     def _get_index(self, hash_value: int):
@@ -78,18 +78,26 @@ class HashMap:
         bucket = self.table[idx]
 
         node = bucket.find_node(
-            lambda entry: entry.hash_value == hash_value and entry.key == key
+            lambda entry: (
+                entry.hash_value == hash_value
+                and entry.key == key
+            )
         )
 
         if node is not None:
+            old_value = node.data.value
             node.data.value = value
-            return
+            return old_value
 
-        bucket.insert_back(HashEntry(key, value, hash_value))
+        bucket.insert_back(
+            HashEntry(key, value, hash_value)
+        )
         self._size += 1
 
         if self._size > self.threshold:
             self._resize()
+
+        return None
 
 
     def get(self, key: Any) -> Any:
