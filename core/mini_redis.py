@@ -1,10 +1,11 @@
 import time
+import math
 from dataclasses import dataclass
 
 from data_structure.hash_map import HashMap
 from data_structure.linked_list import DoublyLinkedList
 from data_structure.min_heap import MinHeap
-
+from typing import Optional
 
 @dataclass(frozen=True)
 class MemoryInfo:
@@ -119,7 +120,7 @@ class MiniRedis:
         if expire_at is None:
             return False
 
-        return expire_at <= int(time.time())
+        return expire_at <= time.monotonic_ns()
 
     def _delete_if_expired(self, key: str) -> bool:
         """
@@ -138,7 +139,7 @@ class MiniRedis:
         EXPIRE 재설정, SET, DEL, LRU eviction으로 인해 힙에 남은
         오래된 엔트리는 ttl_map과 비교하여 무시한다.
         """
-        now = int(time.time())
+        now = time.monotonic_ns()
 
         while self.ttl_heap.size() > 0:
             item = self.ttl_heap.peek()
@@ -186,7 +187,7 @@ class MiniRedis:
                 # 자료구조 상태가 비정상적인 경우 무한 반복 방지
                 return
 
-            self.evicted_keys += 1
+            self.evicted_keys += 1 # 강제로 쫒아낸 데이터 개수
 
     def _can_store_entry(self, key: str, value: str) -> bool:
         """
@@ -231,7 +232,7 @@ class MiniRedis:
         self._touch_lru(key)
         self._evict_if_needed()
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str) -> Optional[str]:
         """
         키의 값을 반환한다.
 
@@ -301,7 +302,7 @@ class MiniRedis:
             self._delete_key(key)
             return True
 
-        expire_at = int(time.time()) + seconds
+        expire_at = time.monotonic_ns() + seconds * 1_000_000_000
 
         self.ttl_map.put(key, expire_at)
         self.ttl_heap.push((expire_at, key))
@@ -327,13 +328,13 @@ class MiniRedis:
         if expire_at is None:
             return -1
 
-        remaining = expire_at - int(time.time())
+        remaining_ns = expire_at - time.monotonic_ns()
 
-        if remaining <= 0:
+        if remaining_ns <= 0:
             self._delete_key(key)
             return -2
 
-        return remaining
+        return math.ceil(remaining_ns / 1_000_000_000)
 
     def set_maxmemory(self, maxmemory: int) -> None:
         """

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterator, Callable
+from typing import Any, Iterator, Callable, Optional
 
 
 class ListNode:
@@ -97,7 +97,7 @@ class DoublyLinkedList:
         if self.tail is None:
             self.tail = node
 
-    def find_node(self, predicate: Callable[[Any], bool]) -> ListNode | None:
+    def find_node(self, predicate: Callable[[Any], bool]) -> Optional[ListNode]:
         current = self.head
 
         while current is not None:

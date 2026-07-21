@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from dataclasses import dataclass
 from data_structure.linked_list import DoublyLinkedList, ListNode
 
@@ -43,7 +43,7 @@ class HashMap:
         return hash_value & (self.capacity - 1) #  정확히 방 개수 범위의 숫자를 남길 수 있음
     
 
-    def _find_node(self, key: Any, hash_value: int) -> ListNode | None:
+    def _find_node(self, key: Any, hash_value: int) -> Optional[ListNode]:
         idx = self._get_index(hash_value)
         bucket = self.table[idx]
 
