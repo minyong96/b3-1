@@ -6,6 +6,7 @@ from data_structure.hash_map import HashMap
 from data_structure.linked_list import DoublyLinkedList
 from data_structure.min_heap import MinHeap
 from typing import Optional
+from data_structure.bucket.hybrid_bucket import HybridBucket
 
 @dataclass(frozen=True)
 class MemoryInfo:
@@ -37,14 +38,14 @@ class MiniRedis:
 
     def __init__(self) -> None:
         # 실제 데이터: key -> value
-        self.store = HashMap()
+        self.store = HashMap(bucket_factory=HybridBucket)
 
         # LRU 관리
         self.lru_list = DoublyLinkedList()
-        self.lru_nodes = HashMap()
+        self.lru_nodes = HashMap(bucket_factory=HybridBucket)
 
         # TTL 관리
-        self.ttl_map = HashMap()
+        self.ttl_map = HashMap(bucket_factory=HybridBucket)
         self.ttl_heap = MinHeap()
 
         # 메모리 관리

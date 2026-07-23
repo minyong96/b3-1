@@ -1,25 +1,23 @@
 from typing import Any, Optional
 from dataclasses import dataclass
-from data_structure.linked_list import DoublyLinkedList, ListNode
-
-@dataclass
-class HashEntry:
-    key: Any
-    value: Any
-    hash_value: int
-
+from data_structure.linked_list import ListNode
+from data_structure.bucket.hybrid_bucket import HybridBucket
+from data_structure.bucket.bucket_interface import BucketInterface
+from data_structure.hash_entry import HashEntry
 
 class HashMap:
     capacity: int
-    table: list[DoublyLinkedList] 
+    bucket_factory: BucketInterface 
+    table: list[BucketInterface]
     _size: int
     load_factor: float
     threshold: int # 확장 임계치 
 
-    def __init__(self):
+    def __init__(self, bucket_factory=HybridBucket):
         self.capacity = 16
+        self.bucket_factory = bucket_factory
         self.table = [
-            DoublyLinkedList() for _ in range(self.capacity)
+            self.bucket_factory() for _ in range(self.capacity)
         ]
         self._size = 0
         self.load_factor = 0.75
@@ -43,20 +41,11 @@ class HashMap:
         return hash_value & (self.capacity - 1) #  정확히 방 개수 범위의 숫자를 남길 수 있음
     
 
-    def _find_node(self, key: Any, hash_value: int) -> Optional[ListNode]:
-        idx = self._get_index(hash_value)
-        bucket = self.table[idx]
-
-        return bucket.find_node(
-            lambda entry: entry.hash_value == hash_value and entry.key == key
-        )
-
-
     def _resize(self) -> None:
         old_table = self.table
 
         self.capacity *= 2
-        self.table = [DoublyLinkedList() for _ in range(self.capacity)]
+        self.table = [self.bucket_factory() for _ in range(self.capacity)]
         self.threshold = int(self.capacity * self.load_factor)
 
         old_size = self._size
@@ -65,103 +54,56 @@ class HashMap:
         for bucket in old_table:
             for entry in bucket:
                 idx = self._get_index(entry.hash_value)
-                self.table[idx].insert_back(entry)
+                self.table[idx].insert_or_update(entry)
                 self._size += 1
 
         assert self._size == old_size
                 
 
 
-    def put(self, key: Any, value: Any) -> None:
+    def put(self, key: Any, value: Any) -> Optional[Any]:
         hash_value = self._get_hash(key)
         idx = self._get_index(hash_value)
         bucket = self.table[idx]
 
-        node = bucket.find_node(
-            lambda entry: (
-                entry.hash_value == hash_value
-                and entry.key == key
-            )
-        )
+        entry = HashEntry(key, value, hash_value)
+        old_value = bucket.insert_or_update(entry)
 
-        if node is not None:
-            old_value = node.data.value
-            node.data.value = value
-            return old_value
+        if old_value is None:
+            self._size += 1
+            if self._size > self.threshold:
+                self._resize()
 
-        bucket.insert_back(
-            HashEntry(key, value, hash_value)
-        )
-        self._size += 1
-
-        if self._size > self.threshold:
-            self._resize()
-
-        return None
-
+        return old_value
 
     def get(self, key: Any) -> Any:
         hash_value = self._get_hash(key)
-        node = self._find_node(key, hash_value)
-
-        if node is None:
-            return None
-
-        return node.data.value
+        idx = self._get_index(hash_value)
+        entry = self.table[idx].search(key, hash_value)
+        return entry.value if entry else None
 
 
     def remove(self, key: Any) -> Any:
         hash_value = self._get_hash(key)
         idx = self._get_index(hash_value)
-        bucket = self.table[idx]
+        removed_value = self.table[idx].delete(key, hash_value)
 
-        node = bucket.find_node(
-            lambda entry: entry.hash_value == hash_value and entry.key == key
-        )
+        if removed_value is not None:
+            self._size -= 1
 
-        if node is None:
-            return None
-
-        removed_entry = bucket.remove_node(node)
-        self._size -= 1
-
-        return removed_entry.value
+        return removed_value
 
     def contains(self, key: Any) -> bool:
-        hash_value = self._get_hash(key)
-        node = self._find_node(key, hash_value)
+        return self.get(key) is not None
 
-        return node is not None
-
-    
     def keys(self) -> list[Any]:
-        result = []
-
-        for bucket in self.table:
-            for entry in bucket:
-                result.append(entry.key)
-
-        return result
-    
+        return [entry.key for bucket in self.table for entry in bucket]
 
     def values(self) -> list[Any]:
-        result = []
+        return [entry.value for bucket in self.table for entry in bucket]
 
-        for bucket in self.table:
-            for entry in bucket:
-                result.append(entry.value)
-
-        return result
-    
     def items(self) -> list[tuple[Any, Any]]:
-        result = []
-
-        for bucket in self.table:
-            for entry in bucket:
-                result.append((entry.key, entry.value))
-
-        return result
-    
+        return [(entry.key, entry.value) for bucket in self.table for entry in bucket]
 
     def size(self) -> int:
         return self._size

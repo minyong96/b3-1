@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+
 from typing import Any, Iterator, Callable, Optional
 
 
@@ -109,6 +109,9 @@ class DoublyLinkedList:
         return None
 
     def size(self) -> int:
+        return self._size
+
+    def __len__(self):
         return self._size
 
     def __iter__(self) -> Iterator[Any]:
